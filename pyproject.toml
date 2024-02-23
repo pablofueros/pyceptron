@@ -14,8 +14,8 @@ license = "MIT"
 dependencies = ["numpy"]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov"]
-ex = ["ipykernel", "pandas", "matplotlib"]
+testing = ["pytest", "pytest-cov"]
+examples = ["ipykernel", "pandas", "matplotlib"]
 
 [project.urls]
 Repository = "https://github.com/pablofueros/pyceptron"

@@ -1,0 +1,6 @@
+# PROFILE
+.vscode
+
+# EXECUTION
+__pycache__
+*.pyc
