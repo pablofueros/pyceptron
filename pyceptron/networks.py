@@ -24,26 +24,28 @@ class SingleLayerPerceptron:
     n_output: int
 
     def __post_init__(self):
-        self.wmat = self.init_wmat()
-        self.bias = self.init_bias()
+        self.wmat = np.random.randn(*self._wshape)
+        self.bias = np.random.randn(*self._bshape)
+        self.w_iner = np.zeros(self._wshape)
+        self.b_iner = np.zeros(self._bshape)
 
     @property
-    def _wshape(self):
+    def _wshape(self) -> Tuple[int, int]:
         return (self.n_input, self.n_output)
 
     @property
-    def _bshape(self):
+    def _bshape(self) -> Tuple[int, int]:
         return (self.n_output, 1)
 
-    def init_wmat(self) -> NDArray:
-        return np.random.randn(*self._wshape)
-
-    def init_bias(self) -> NDArray:
-        return np.random.randn(*self._bshape)
-
     def gradient_desc(
-        self, x_inp: NDArray, y_out: NDArray, iters: int, eta: float, info: bool
-    ):
+        self,
+        x_inp: NDArray,
+        y_out: NDArray,
+        iters: int,
+        eta: float,
+        alpha: float,
+        info: bool,
+    ) -> None:
         for i in range(iters):
             # Feed forward
             z_out = np.dot(self.wmat.T, x_inp) + self.bias
@@ -54,18 +56,29 @@ class SingleLayerPerceptron:
             # Compute the gradients
             nabla_w = np.dot(x_inp, delta.T)
             nabla_b = delta.sum(axis=1, keepdims=True)
-            # Gradient descent update
-            self.wmat -= eta * nabla_w
-            self.bias -= eta * nabla_b
+            # Gradient descent update (with momentum)
+            self.wmat += -eta * nabla_w + alpha * self.w_iner
+            self.bias += -eta * nabla_b + alpha * self.b_iner
+            # Update the inertia terms
+            self.w_iner = eta * nabla_w
+            self.b_iner = eta * nabla_b
             # Compute and print the loss (MSE)
             error = 0.5 * np.sum(d_error**2)
             if info:
                 print(f"Iteration: {i+1:{len(str(iters))}}, Error: {error:.8e}")
 
-    def fit(self, x_train: NDArray, y_train: NDArray, iters=1000, eta=0.1, info=True):
+    def fit(
+        self,
+        x_train: NDArray,
+        y_train: NDArray,
+        iters: int = 1000,
+        eta: float = 0.1,
+        alpha: float = 0,
+        info: bool = True,
+    ) -> None:
         x_inp = x_train.T
         y_out = y_train.reshape(self.n_output, -1)
-        self.gradient_desc(x_inp, y_out, iters, eta, info)
+        self.gradient_desc(x_inp, y_out, iters, eta, alpha, info)
 
     def predict(self, x_test: NDArray) -> NDArray:
         x_test = x_test
@@ -80,38 +93,40 @@ class DoubleLayerPerceptron:
     n_output: int
 
     def __post_init__(self):
-        self.wmat1 = self.init_wmat(1)
-        self.bias1 = self.init_bias(1)
-        self.wmat2 = self.init_wmat(2)
-        self.bias2 = self.init_bias(2)
+        self.wmat1 = np.random.randn(*self._wshape1)
+        self.bias1 = np.random.randn(*self._bshape1)
+        self.wmat2 = np.random.randn(*self._wshape2)
+        self.bias2 = np.random.randn(*self._bshape2)
+        self.w_iner1 = np.zeros(self._wshape1)
+        self.b_iner1 = np.zeros(self._bshape1)
+        self.w_iner2 = np.zeros(self._wshape2)
+        self.b_iner2 = np.zeros(self._bshape2)
 
     @property
-    def _wshape1(self):
+    def _wshape1(self) -> Tuple[int, int]:
         return (self.n_input, self.n_hidden)
 
     @property
-    def _bshape1(self):
+    def _bshape1(self) -> Tuple[int, int]:
         return (self.n_hidden, 1)
 
     @property
-    def _wshape2(self):
+    def _wshape2(self) -> Tuple[int, int]:
         return (self.n_hidden, self.n_output)
 
     @property
-    def _bshape2(self):
+    def _bshape2(self) -> Tuple[int, int]:
         return (self.n_output, 1)
 
-    def init_wmat(self, layer: int) -> NDArray:
-        WSHAPE = {1: self._wshape1, 2: self._wshape2}
-        return np.random.randn(*WSHAPE[layer])
-
-    def init_bias(self, layer: int) -> NDArray:
-        BSHAPE = {1: self._bshape1, 2: self._bshape2}
-        return np.random.randn(*BSHAPE[layer])
-
     def gradient_desc(
-        self, x_inp: NDArray, y_out: NDArray, iters: int, eta: float, info: bool
-    ):
+        self,
+        x_inp: NDArray,
+        y_out: NDArray,
+        iters: int,
+        eta: float,
+        alpha: float,
+        info: bool,
+    ) -> None:
         for i in range(iters):
             # Feed forward
             z_one = np.dot(self.wmat1.T, x_inp) + self.bias1
@@ -128,19 +143,27 @@ class DoubleLayerPerceptron:
             nabla_w1 = np.dot(x_inp, delta1.T)
             nabla_b1 = delta1.sum(axis=1, keepdims=True)
             # Gradient descent update
-            self.wmat2 -= eta * nabla_w2
-            self.bias2 -= eta * nabla_b2
-            self.wmat1 -= eta * nabla_w1
-            self.bias1 -= eta * nabla_b1
+            self.wmat2 += -eta * nabla_w2 + alpha * self.w_iner2
+            self.bias2 += -eta * nabla_b2 + alpha * self.b_iner2
+            self.wmat1 += -eta * nabla_w1 + alpha * self.w_iner1
+            self.bias1 += -eta * nabla_b1 + alpha * self.b_iner1
             # Compute and print the loss (MSE)
             error = 0.5 * np.sum(d_error**2)
             if info:
                 print(f"Iteration: {i+1:{len(str(iters))}}, Error: {error:.8e}")
 
-    def fit(self, x_train: NDArray, y_train: NDArray, iters=1000, eta=0.1, info=True):
+    def fit(
+        self,
+        x_train: NDArray,
+        y_train: NDArray,
+        iters: int = 1000,
+        eta: float = 0.1,
+        alpha: float = 0,
+        info: bool = True,
+    ) -> None:
         x_inp = x_train.T
         y_out = y_train.reshape(self.n_output, -1)
-        self.gradient_desc(x_inp, y_out, iters, eta, info)
+        self.gradient_desc(x_inp, y_out, iters, eta, alpha, info)
 
     def predict(self, x_test: NDArray) -> NDArray:
         x_test = x_test
@@ -154,8 +177,10 @@ class MultiLayerPerceptron:
     sizes: NDArray | List[int]
 
     def __post_init__(self):
-        self.weights = self.init_weights()
-        self.biases = self.init_biases()
+        self.weights = [np.random.randn(*wshape) for wshape in self._wshapes]
+        self.biases = [np.random.randn(*bshape) for bshape in self._bshapes]
+        self.w_iners = [np.zeros(wshape) for wshape in self._wshapes]
+        self.b_iners = [np.zeros(bshape) for bshape in self._bshapes]
 
     @property
     def num_layers(self) -> int:
@@ -163,17 +188,11 @@ class MultiLayerPerceptron:
 
     @property
     def _wshapes(self) -> Iterator[Tuple[int, int]]:
-        return zip(self.sizes[:-1], self.sizes[1:])
+        return zip(self.sizes[1:], self.sizes[:-1])
 
     @property
-    def _bshapes(self) -> NDArray | List[int]:
-        return self.sizes[1:]
-
-    def init_weights(self) -> List[NDArray]:
-        return [np.random.randn(y, x) for x, y in self._wshapes]
-
-    def init_biases(self) -> List[NDArray]:
-        return [np.random.randn(y, 1) for y in self._bshapes]
+    def _bshapes(self) -> Iterator[Tuple[int, int]]:
+        return zip(self.sizes[1:], np.ones_like(self.sizes[1:]))
 
     def feedforward(self, x_inp: NDArray) -> Tuple[List[NDArray], List[NDArray]]:
         """Compute the output of the network given an input. The temporary
@@ -203,20 +222,46 @@ class MultiLayerPerceptron:
         nabla_b = [delta.sum(axis=1, keepdims=True) for delta in deltas]
         return nabla_w, nabla_b
 
-    def gradient_desc(self, x_inp: NDArray, y_out: NDArray, iters, eta, info):
+    def gradient_desc(
+        self,
+        x_inp: NDArray,
+        y_out: NDArray,
+        iters: int,
+        eta: float,
+        alpha: float,
+        info: bool,
+    ) -> None:
         "Train the neural network using the gradient descent algorithm."
         for i in range(iters):
             nabla_w, nabla_b = self.comp_gradients(x_inp, y_out)
-            self.weights = [w - eta * nw for w, nw in zip(self.weights, nabla_w)]
-            self.biases = [b - eta * nb for b, nb in zip(self.biases, nabla_b)]
+            # Gradient descent update (with momentum)
+            self.weights = [
+                wmat - eta * nw + alpha * w_iner
+                for wmat, nw, w_iner in zip(self.weights, nabla_w, self.w_iners)
+            ]
+            self.biases = [
+                bias - eta * nb + alpha * b_iner
+                for bias, nb, b_iner in zip(self.biases, nabla_b, self.b_iners)
+            ]
+            # Update the inertia terms
+            self.w_iners = [eta * nw for nw in nabla_w]
+            self.b_iners = [eta * nb for nb in nabla_b]
             if info:
                 error = 0.5 * np.sum((y_out - self.feedforward(x_inp)[1][-1]) ** 2)
                 print(f"Iteration: {i+1:{len(str(iters))}}, Error: {error:.8e}")
 
-    def fit(self, x_train: NDArray, y_train: NDArray, iters=1000, eta=0.1, info=True):
+    def fit(
+        self,
+        x_train: NDArray,
+        y_train: NDArray,
+        iters: int = 1000,
+        eta: float = 0.1,
+        alpha: float = 0,
+        info: bool = True,
+    ) -> None:
         x_inp = x_train.T
         y_out = y_train.reshape(self.sizes[-1], -1)
-        self.gradient_desc(x_inp, y_out, iters, eta, info)
+        self.gradient_desc(x_inp, y_out, iters, eta, alpha, info)
 
     def predict(self, x_test: NDArray) -> NDArray:
         x_test = x_test
