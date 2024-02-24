@@ -188,7 +188,7 @@ class MultiLayerPerceptron:
 
     @property
     def _wshapes(self) -> Iterator[Tuple[int, int]]:
-        return zip(self.sizes[1:], self.sizes[:-1])
+        return zip(self.sizes[:-1], self.sizes[1:])
 
     @property
     def _bshapes(self) -> Iterator[Tuple[int, int]]:
@@ -199,7 +199,7 @@ class MultiLayerPerceptron:
         values (z and a) are stored for later use in the backpropagation."""
         a_vals, z_vals = [a := x_inp], []
         for w, b in zip(self.weights, self.biases):
-            z_vals.append(z := np.dot(w, a) + b)
+            z_vals.append(z := np.dot(w.T, a) + b)
             a_vals.append(a := sigmoid(z))
         return z_vals, a_vals
 
@@ -210,7 +210,7 @@ class MultiLayerPerceptron:
         deltas[-1] = (delta := (a_vals[-1] - y_out) * d_sigmoid(z_vals[-1]))
         # Compute the error for the hidden layers (backpropagation)
         for layer in range(2, self.num_layers):
-            aux = np.dot(self.weights[-layer + 1].T, delta)
+            aux = np.dot(self.weights[-layer + 1], delta)
             deltas[-layer] = (delta := aux * d_sigmoid(z_vals[-layer]))
         return deltas
 
@@ -218,7 +218,7 @@ class MultiLayerPerceptron:
         """Compute the gradients for the weights and biases."""
         z_vals, a_vals = self.feedforward(x_inp)
         deltas = self.comp_errors(y_out, z_vals, a_vals)
-        nabla_w = [np.dot(d, a.T) for d, a in zip(deltas, a_vals)]
+        nabla_w = [np.dot(a, d.T) for d, a in zip(deltas, a_vals)]
         nabla_b = [delta.sum(axis=1, keepdims=True) for delta in deltas]
         return nabla_w, nabla_b
 
