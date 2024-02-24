@@ -205,7 +205,7 @@ class MultiLayerPerceptron:
 
     def comp_errors(self, y_out: NDArray, z_vals, a_vals) -> List[NDArray]:
         """Compute the error for each layer in the network (deltas)."""
-        deltas = [np.zeros(b.shape) for b in self.biases]
+        deltas = [np.zeros_like(zv) for zv in z_vals]
         # Compute the error for the output layer (mse derivative used)
         deltas[-1] = (delta := (a_vals[-1] - y_out) * d_sigmoid(z_vals[-1]))
         # Compute the error for the hidden layers (backpropagation)
