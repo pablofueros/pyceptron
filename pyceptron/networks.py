@@ -246,8 +246,9 @@ class MultiLayerPerceptron:
             # Update the inertia terms
             self.w_iners = [eta * nw for nw in nabla_w]
             self.b_iners = [eta * nb for nb in nabla_b]
+            # Compute and print the loss (MSE)
+            error = 0.5 * np.sum((y_out - self.feedforward(x_inp)[1][-1]) ** 2)
             if info:
-                error = 0.5 * np.sum((y_out - self.feedforward(x_inp)[1][-1]) ** 2)
                 print(f"Iteration: {i+1:{len(str(iters))}}, Error: {error:.8e}")
 
     def fit(
