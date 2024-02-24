@@ -4,3 +4,6 @@
 # EXECUTION
 __pycache__
 *.pyc
+
+# PYTESTS
+.coverage
